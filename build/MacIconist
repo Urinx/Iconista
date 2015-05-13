@@ -1,0 +1,248 @@
+#!/bin/bash
+
+# =========
+# Variables
+# =========
+xcode_devtools="/Applications/Xcode.app/Contents/Developer/Tools/"
+default_theme="./Themes/default"
+icon_path="Contents/Resources/ApplicationIcon.icns"
+dock_res="/System/Library/CoreServices/Dock.app/Contents/Resources"
+system_res="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources"
+imgs=(finder.png finder@2x.png trashempty.png trashempty@2x.png trashfull.png trashfull@2x.png)
+
+# =========
+# Functions
+# =========
+# 
+# Set the icon of file or direstory
+# params:
+# xcodeDevToolsSetIcon [filepath] [iconfile]
+function xcodeDevToolsSetIcon() {
+	fpath=$1
+	ipath=$2
+	xcode_devtools="/Applications/Xcode.app/Contents/Developer/Tools/"
+
+	if [ -d $xcode_devtools ]; then
+		if [ -d "$fpath" ]; then
+			# $fpath is a direstory
+			touch "$fpath/Icon"$'\r'
+			cp "$ipath" tempIcon.icns
+			sips -i tempIcon.icns > /dev/null 2>&1
+			derez -only icns tempIcon.icns > tempicns.rsrc
+			rez -a tempicns.rsrc -o "$fpath/Icon"$'\r'
+			setfile -a C "$fpath"
+			rm tempIcon.icns
+			rm tempicns.rsrc
+			# hide Icon$'\r' file inside folder
+			setfile -a V "$fpath/Icon"$'\r'
+		elif [ -e "$fpath" ]; then
+			# $fpath is a file
+			cp "$ipath" tempIcon.icns
+			sips -i tempIcon.icns > /dev/null 2>&1
+			derez -only icns tempIcon.icns > tempicns.rsrc
+			rez -a tempicns.rsrc -o "$fpath"
+			setfile -a C "$fpath"
+			rm tempIcon.icns
+			rm tempicns.rsrc
+		else
+			echo "$fpath is NOT a file or direstory"
+			exit 1
+		fi
+	else
+		echo "[*] Error: this need Xcode Developer/Tools. Please install it first!"
+		exit 1
+	fi
+}
+# setAppIcon [app_path] [iconfile]
+function setAppIcon() {
+	apath=$1
+	ipath=$2
+
+	# Replace the Contents/Resources/ApplicationIcon.icns
+	if [ -e "$apath/$icon_path" ]; then
+		if [ ! -e "$apath/$icon_path.bak" ]; then
+			cp "$apath/$icon_path" "$apath/$icon_path.bak"
+		fi
+		cp "$ipath" "$apath/$icon_path"
+	else
+		#echo "Not support now"
+		tmp="${ipath##*/}"
+		icon="${tmp##*@}"
+		if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
+			cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak" || echo "Not support now";exit 1
+		fi
+		cp "$ipath" "$apath/Contents/Resources/$icon"
+	fi
+	
+	touch "$apath/1"
+	rm "$apath/1"
+}
+# restoreAppIcon [app_path]
+function restoreAppIcon() {
+	apath=$1
+
+	if [ -e "$apath/$icon_path.bak" ]; then
+		rm "$apath/$icon_path"
+		mv "$apath/$icon_path.bak" "$apath/$icon_path"
+	fi
+
+	for bak in "$apath"/Contents/Resources/*.icns.bak
+	do
+		if [ "$bak" != "$apath/Contents/Resources/*.icns.bak" ]; then
+			pre="${bak%.*}"
+			rm "$pre"
+			cp "$bak" "$pre"
+		fi
+	done
+
+	if [ -e "$apath/Icon"$'\r' ]; then
+		rm "$apath/Icon"$'\r'
+	fi
+
+	touch "$apath/1"
+	rm "$apath/1"
+}
+function restoreDocker() {
+	for img in ${imgs[*]}
+	do
+		if [ -e $dock_res/$img.bak ]; then
+			mv $dock_res/$img.bak $dock_res/$img
+		fi
+	done
+	find /private/var/ -name *dock.iconcache* -exec rm {} \;
+	killall Dock
+}
+# 隐藏 Launchpad 里的图标
+# hideAppIconInLaunchpad [app_name]
+function hideAppIconInLaunchpad() {
+	appname=$1
+	sqlite3 $(find /private/var/folders -name com.apple.dock.launchpad)/db/db "DELETE FROM apps WHERE title='$appname';"
+	killall Dock
+}
+
+# Make screensaver load as the desktop wallpaper
+function screensaverWallpaper() {
+	/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background &
+}
+
+# Usage
+function usage() {
+	echo "[*] Usage:"
+	echo "[*] $0 [-i | -r | -h | -d [app_name] | -s [theme] | -f [file] [icon]]"
+	echo "[*] -i: install the default icon theme"
+	echo "[*] -r: restore the origin icon"
+	echo "[*] -d: delete/hide the app in Launchpad"
+	echo "[*] -s: install the specified theme"
+	echo "[*] -f: set icon for file or folder"
+	echo "[*] -h: help"
+}
+
+# ====
+# Main
+# ====
+# 
+# This script is used to change the Mac OS X default apps icon
+# and it will require root privilege to do some operations
+if [ $UID -ne 0 ]; then
+	echo "[*] Superuser privileges are required to run this script."
+	echo "[*] e.g. \"sudo $0\""
+	exit 1
+fi
+
+if [ ! $1 ]; then
+	usage
+	exit 1
+fi
+
+echo "Welcome to MacIconist!"
+say "Welcome to MacIconist"
+
+if [ $1 = "-i" ]; then
+	# There are two ways to change App icon
+	if [ -d $xcode_devtools ]; then
+		# Use Xcode Developer Tools to create Icon^M
+		foo=xcodeDevToolsSetIcon
+	else
+		# Replace the Contents/Resources/ApplicationIcon.icns
+		foo=setAppIcon
+	fi
+
+	echo "[*] Replace the Applications icon ..."
+	for appicon in $default_theme/Applications/*
+	do
+		tmp="${appicon##*/}"
+		app="${tmp%.*}"
+		$foo "/Applications/$app" "$appicon"
+	done
+	echo "[*] Replace the Utilities icon ..."
+	for appicon in $default_theme/Utilities/*
+	do
+		tmp="${appicon##*/}"
+		app="${tmp%.*}"
+		$foo "/Applications/Utilities/$app" "$appicon"
+	done
+	echo "[*] Replace the thirdpart app icon ..."
+	for ipath in $default_theme/Apps/*
+	do
+		tmp="${ipath##*/}"
+		app="${tmp%@*}"
+		$foo "/Applications/$app" "$ipath"
+	done
+
+	# Change Finder & Trash app icon
+	echo "[*] Replace the Finder & Trash icon ..."
+	for img in ${imgs[*]}
+	do
+		if [ ! -e $dock_res/$img.bak ]; then
+			mv $dock_res/$img $dock_res/$img.bak
+		else
+			rm $dock_res/$img 2> /dev/null
+		fi
+	done
+
+	for file in $default_theme/Docker/*
+	do
+		cp -p $file $dock_res/
+	done
+	# delete caches & restart docker
+	find /private/var/ -name *dock.iconcache* -exec rm {} \;
+	killall Dock
+
+	# Replace OS X default icon
+	echo "[*] Replace the default system icon ..."
+	# for file in $default_theme/System/*
+	# do
+	# 	# ...
+	# done
+	echo "[*] - This is NOT support now"
+	echo "[*] done"
+elif [ $1 = "-f" ]; then
+	echo "[*] Set the icon of $2"
+	xcodeDevToolsSetIcon $2 $3
+	echo "[*] done"
+elif [ $1 = "-r" ]; then
+	# Restore
+	echo "[*] Restore the Applications ..."
+	for app in /Applications/*
+	do
+		if [ "$app" != "/Applications/Utilities" ]; then
+			restoreAppIcon "$app"
+		fi
+	done
+	echo "[*] Restore the Utilities ..."
+	for app in /Applications/Utilities/*
+	do
+		restoreAppIcon "$app"
+	done
+	echo "[*] Restore the Docker ..."
+	restoreDocker
+	echo "[*] done"
+elif [ $1 = "-d" ]; then
+	# Hide the app icon
+	hideAppIconInLaunchpad $2
+elif [ $1 = "-s" ]; then
+	# Install the specified theme
+	echo "This is NOT support now!"
+else
+	usage
+fi
