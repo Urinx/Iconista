@@ -58,21 +58,12 @@ function setAppIcon() {
 	apath=$1
 	ipath=$2
 
-	# Replace the Contents/Resources/ApplicationIcon.icns
-	if [ -e "$apath/$icon_path" ]; then
-		if [ ! -e "$apath/$icon_path.bak" ]; then
-			cp "$apath/$icon_path" "$apath/$icon_path.bak"
-		fi
-		cp "$ipath" "$apath/$icon_path"
-	else
-		#echo "Not support now"
-		tmp="${ipath##*/}"
-		icon="${tmp##*@}"
-		if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
-			cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak" || echo "Not support now";exit 1
-		fi
-		cp "$ipath" "$apath/Contents/Resources/$icon"
+	# Replace the *.app/Contents/Resources/*.icns
+	icon="${ipath##*@}"
+	if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
+		cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak"
 	fi
+	cp "$ipath" "$apath/Contents/Resources/$icon"
 	
 	touch "$apath/1"
 	rm "$apath/1"
@@ -80,11 +71,6 @@ function setAppIcon() {
 # restoreAppIcon [app_path]
 function restoreAppIcon() {
 	apath=$1
-
-	if [ -e "$apath/$icon_path.bak" ]; then
-		rm "$apath/$icon_path"
-		mv "$apath/$icon_path.bak" "$apath/$icon_path"
-	fi
 
 	for bak in "$apath"/Contents/Resources/*.icns.bak
 	do
@@ -171,14 +157,14 @@ if [ $1 = "-i" ]; then
 	for appicon in $default_theme/Applications/*
 	do
 		tmp="${appicon##*/}"
-		app="${tmp%.*}"
+		app="${tmp%@*}"
 		$foo "/Applications/$app" "$appicon"
 	done
 	echo "[*] Replace the Utilities icon ..."
 	for appicon in $default_theme/Utilities/*
 	do
 		tmp="${appicon##*/}"
-		app="${tmp%.*}"
+		app="${tmp%@*}"
 		$foo "/Applications/Utilities/$app" "$appicon"
 	done
 	echo "[*] Replace the thirdpart app icon ..."
