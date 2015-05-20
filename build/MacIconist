@@ -53,13 +53,27 @@ function xcodeDevToolsSetIcon() {
 		exit 1
 	fi
 }
+
+# readPlist [plist] [key]
+function readPlist() {
+	plist=$1
+	key=$2
+
+	value=`plutil -p "$plist" | grep $key | awk -F '=>' '{print $2}' | sed -e 's/\"//g'`
+	echo $value
+}
+
 # setAppIcon [app_path] [iconfile]
 function setAppIcon() {
 	apath=$1
 	ipath=$2
 
 	# Replace the *.app/Contents/Resources/*.icns
-	icon="${ipath##*@}"
+	icon=`readPlist "$apath/Contents/Info.plist" "CFBundleIconFile"`
+	if [ "${icon##*.}" != "icns" ]; then
+		icon="$icon".icns
+	fi
+
 	if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
 		cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak"
 	fi
@@ -157,21 +171,21 @@ if [ $1 = "-i" ]; then
 	for appicon in $default_theme/Applications/*
 	do
 		tmp="${appicon##*/}"
-		app="${tmp%@*}"
+		app="${tmp%.*}"
 		$foo "/Applications/$app" "$appicon"
 	done
 	echo "[*] Replace the Utilities icon ..."
 	for appicon in $default_theme/Utilities/*
 	do
 		tmp="${appicon##*/}"
-		app="${tmp%@*}"
+		app="${tmp%.*}"
 		$foo "/Applications/Utilities/$app" "$appicon"
 	done
 	echo "[*] Replace the thirdpart app icon ..."
 	for ipath in $default_theme/Apps/*
 	do
 		tmp="${ipath##*/}"
-		app="${tmp%@*}"
+		app="${tmp%.*}"
 		$foo "/Applications/$app" "$ipath"
 	done
 
