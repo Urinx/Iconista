@@ -1,4 +1,6 @@
-# MacIconist
+# Iconista
+
+Learn more at http://urinx.github.io/app/iconista/
 
 The best & most beautiful way to set your Mac OS X beautiful!
 
@@ -18,12 +20,12 @@ Install
 -------
 Download the soure code and then unzip it.
 ```
-git clone https://github.com/Urinx/MacIconist/archive/master.zip
+git clone https://github.com/Urinx/Iconista/archive/master.zip
 ```
-Go to `build` folder, and `MacIconist` is the main program.
+Go to `build` folder, and `Iconista` is the main program.
 ```
 cd build/
-sudo ./MacIconist
+sudo ./Iconista
 ```
 That's all, it's very easy, right?
 
@@ -31,27 +33,27 @@ How
 ---
 For help, you can do this:
 ```
-sudo ./MacIconist -h
+sudo ./Iconista -h
 ```
 Install the default icon theme:
 ```
-sudo ./MacIconist -i
+sudo ./Iconista -i
 ```
 Restore the origin system icon:
 ```
-sudo ./MacIconist -r
+sudo ./Iconista -r
 ```
 Delete/hide the app in Launchpad:
 ```
-sudo ./MacIconist -d "Safari"
+sudo ./Iconista -d "Safari"
 ```
 Set icon for file or folder:
 ```
-sudo ./MacIconist -f /path/to/file /path/to/icon
+sudo ./Iconista -f /path/to/file /path/to/icon
 ```
 Install the specified theme(This is NOT support now):
 ```
-sudo ./MacIconist -s "theme_name"
+sudo ./Iconista -s "theme_name"
 ```
 
 Demo
