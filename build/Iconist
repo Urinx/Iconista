@@ -44,9 +44,9 @@ function xcodeDevToolsSetIcon() {
 			setfile -a C "$fpath"
 			rm tempIcon.icns
 			rm tempicns.rsrc
-		else
-			echo "$fpath is NOT a file or direstory"
-			exit 1
+		# else
+		# 	echo "$fpath is NOT a file or direstory"
+		# 	exit 1
 		fi
 	else
 		echo "[*] Error: this need Xcode Developer/Tools. Please install it first!"
@@ -68,19 +68,21 @@ function setAppIcon() {
 	apath=$1
 	ipath=$2
 
-	# Replace the *.app/Contents/Resources/*.icns
-	icon=`readPlist "$apath/Contents/Info.plist" "CFBundleIconFile"`
-	if [ "${icon##*.}" != "icns" ]; then
-		icon="$icon".icns
-	fi
+	if [ -d "$apath" ]; then
+		# Replace the *.app/Contents/Resources/*.icns
+		icon=`readPlist "$apath/Contents/Info.plist" "CFBundleIconFile"`
+		if [ "${icon##*.}" != "icns" ]; then
+			icon="$icon".icns
+		fi
 
-	if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
-		cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak"
+		if [ ! -e "$apath/Contents/Resources/$icon.bak" ]; then
+			cp "$apath/Contents/Resources/$icon" "$apath/Contents/Resources/$icon.bak"
+		fi
+		cp "$ipath" "$apath/Contents/Resources/$icon"
+		
+		touch "$apath/1"
+		rm "$apath/1"
 	fi
-	cp "$ipath" "$apath/Contents/Resources/$icon"
-	
-	touch "$apath/1"
-	rm "$apath/1"
 }
 # restoreAppIcon [app_path]
 function restoreAppIcon() {
@@ -154,8 +156,8 @@ if [ ! $1 ]; then
 	exit 1
 fi
 
-echo "Welcome to MacIconist!"
-say "Welcome to MacIconist"
+echo "Welcome to Iconist!"
+say "Welcome to Iconist"
 
 if [ $1 = "-i" ]; then
 	# There are two ways to change App icon
