@@ -25,6 +25,7 @@ function xcodeDevToolsSetIcon() {
 	if [ -d $xcode_devtools ]; then
 		if [ -d "$fpath" ]; then
 			# $fpath is a direstory
+			rm "$fpath/Icon"$'\r'
 			touch "$fpath/Icon"$'\r'
 			cp "$ipath" tempIcon.icns
 			sips -i tempIcon.icns > /dev/null 2>&1
@@ -139,6 +140,70 @@ function usage() {
 	echo "[*] -h: help"
 }
 
+# Install [theme]
+function install() {
+	theme=$1
+
+	# There are two ways to change App icon
+	if [ -d $xcode_devtools ]; then
+		# Use Xcode Developer Tools to create Icon^M
+		foo=xcodeDevToolsSetIcon
+	else
+		# Replace the Contents/Resources/ApplicationIcon.icns
+		foo=setAppIcon
+	fi
+
+	echo "[*] Replace the Applications icon ..."
+	for appicon in $theme/Applications/*
+	do
+		tmp="${appicon##*/}"
+		app="${tmp%.*}"
+		$foo "/Applications/$app" "$appicon"
+	done
+	echo "[*] Replace the Utilities icon ..."
+	for appicon in $theme/Utilities/*
+	do
+		tmp="${appicon##*/}"
+		app="${tmp%.*}"
+		$foo "/Applications/Utilities/$app" "$appicon"
+	done
+	echo "[*] Replace the thirdpart app icon ..."
+	for ipath in $theme/Apps/*
+	do
+		tmp="${ipath##*/}"
+		app="${tmp%.*}"
+		$foo "/Applications/$app" "$ipath"
+	done
+
+	# Change Finder & Trash app icon
+	echo "[*] Replace the Finder & Trash icon ..."
+	for img in ${imgs[*]}
+	do
+		if [ ! -e $dock_res/$img.bak ]; then
+			mv $dock_res/$img $dock_res/$img.bak
+		else
+			rm $dock_res/$img 2> /dev/null
+		fi
+	done
+
+	for file in $theme/Docker/*
+	do
+		cp -p $file $dock_res/
+	done
+	# delete caches & restart docker
+	find /private/var/ -name *dock.iconcache* -exec rm {} \;
+	killall Dock
+
+	# Replace OS X default icon
+	echo "[*] Replace the default system icon ..."
+	# for file in $default_theme/System/*
+	# do
+	# 	# ...
+	# done
+	echo "[*] - This is NOT support now"
+	echo "[*] done"
+}
+
 # ====
 # Main
 # ====
@@ -160,64 +225,7 @@ echo "Welcome to Iconist!"
 say "Welcome to Iconist"
 
 if [ $1 = "-i" ]; then
-	# There are two ways to change App icon
-	if [ -d $xcode_devtools ]; then
-		# Use Xcode Developer Tools to create Icon^M
-		foo=xcodeDevToolsSetIcon
-	else
-		# Replace the Contents/Resources/ApplicationIcon.icns
-		foo=setAppIcon
-	fi
-
-	echo "[*] Replace the Applications icon ..."
-	for appicon in $default_theme/Applications/*
-	do
-		tmp="${appicon##*/}"
-		app="${tmp%.*}"
-		$foo "/Applications/$app" "$appicon"
-	done
-	echo "[*] Replace the Utilities icon ..."
-	for appicon in $default_theme/Utilities/*
-	do
-		tmp="${appicon##*/}"
-		app="${tmp%.*}"
-		$foo "/Applications/Utilities/$app" "$appicon"
-	done
-	echo "[*] Replace the thirdpart app icon ..."
-	for ipath in $default_theme/Apps/*
-	do
-		tmp="${ipath##*/}"
-		app="${tmp%.*}"
-		$foo "/Applications/$app" "$ipath"
-	done
-
-	# Change Finder & Trash app icon
-	echo "[*] Replace the Finder & Trash icon ..."
-	for img in ${imgs[*]}
-	do
-		if [ ! -e $dock_res/$img.bak ]; then
-			mv $dock_res/$img $dock_res/$img.bak
-		else
-			rm $dock_res/$img 2> /dev/null
-		fi
-	done
-
-	for file in $default_theme/Docker/*
-	do
-		cp -p $file $dock_res/
-	done
-	# delete caches & restart docker
-	find /private/var/ -name *dock.iconcache* -exec rm {} \;
-	killall Dock
-
-	# Replace OS X default icon
-	echo "[*] Replace the default system icon ..."
-	# for file in $default_theme/System/*
-	# do
-	# 	# ...
-	# done
-	echo "[*] - This is NOT support now"
-	echo "[*] done"
+	install $default_theme
 elif [ $1 = "-f" ]; then
 	echo "[*] Set the icon of $2"
 	xcodeDevToolsSetIcon $2 $3
@@ -244,7 +252,8 @@ elif [ $1 = "-d" ]; then
 	hideAppIconInLaunchpad $2
 elif [ $1 = "-s" ]; then
 	# Install the specified theme
-	echo "This is NOT support now!"
+	echo "[*] Use the theme -- $2"
+	install "./Themes/$2"
 else
 	usage
 fi
