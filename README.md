@@ -16,6 +16,20 @@ Which can do the followings:
 * Set the files or folders icon
 * Set the wallpaper
 
+El Capitan
+----------
+> In OS X 10.11(El Capitan) and up, Apple add a new 'Rootless' feature -- System Integrity Protection(SIP).
+> 
+> SIP is protecting the core apps which OS X installs into Applications and Applications Utilities. This means it will no longer be possible to change the applications which OS X installs, even from the command line when using root privileges.
+> 
+> You can find all protected directories in /System/Library/Sandbox/rootless.conf
+> 
+> So we cant change the icon of core apps in Applications and Applications Utilities.
+> 
+> **Or:**
+> 
+> If you really want to change the default apps icon, you can disable SIP. Currently this requires rebooting into recovery mode and running the command `csrutil disable`.
+
 Install
 -------
 Download the soure code and then unzip it.
@@ -51,9 +65,13 @@ Set icon for file or folder:
 ```
 sudo ./Iconista -f /path/to/file /path/to/icon
 ```
-Install the specified theme(This is NOT support now):
+Install the specified theme:
 ```
 sudo ./Iconista -s "theme_name"
+```
+If you disable the SIP, you can change the icon of apps which OS X installs:
+```
+sudo ./Iconista -i -rootless
 ```
 
 Demo

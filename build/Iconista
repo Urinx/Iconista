@@ -8,12 +8,25 @@ default_theme="./Themes/default"
 icon_path="Contents/Resources/ApplicationIcon.icns"
 dock_res="/System/Library/CoreServices/Dock.app/Contents/Resources"
 system_res="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources"
+system_ver="/System/Library/CoreServices/SystemVersion.plist"
 imgs=(finder.png finder@2x.png trashempty.png trashempty@2x.png trashfull.png trashfull@2x.png)
 
 # =========
 # Functions
 # =========
-# 
+#  get system version
+function systemVersion() {
+	version=`readPlist $system_ver "ProductVersion"`
+	echo $version
+}
+
+# check if it's rootless
+function isRootless() {
+	sysVersion=`systemVersion`
+	sysVer="${sysVersion%.*}" # format: xx.xx
+	echo "($sysVer - 10.11) >= 0" | bc -l
+}
+
 # Set the icon of file or direstory
 # params:
 # xcodeDevToolsSetIcon [filepath] [iconfile]
@@ -25,7 +38,7 @@ function xcodeDevToolsSetIcon() {
 	if [ -d $xcode_devtools ]; then
 		if [ -d "$fpath" ]; then
 			# $fpath is a direstory
-			rm "$fpath/Icon"$'\r'
+			rm "$fpath/Icon"$'\r' 2> /dev/null
 			touch "$fpath/Icon"$'\r'
 			cp "$ipath" tempIcon.icns
 			sips -i tempIcon.icns > /dev/null 2>&1
@@ -102,8 +115,7 @@ function restoreAppIcon() {
 		rm "$apath/Icon"$'\r'
 	fi
 
-	touch "$apath/1"
-	rm "$apath/1"
+	touch "$apath/1" 2> /dev/null && rm "$apath/1"
 }
 function restoreDocker() {
 	for img in ${imgs[*]}
@@ -131,13 +143,14 @@ function screensaverWallpaper() {
 # Usage
 function usage() {
 	echo "[*] Usage:"
-	echo "[*] $0 [-i | -r | -h | -d [app_name] | -s [theme] | -f [file] [icon]]"
+	echo "[*] $0 [-i | -r | -h | -d [app_name] | -s [theme] | -f [file] [icon]] [-rootless]"
 	echo "[*] -i: install the default icon theme"
 	echo "[*] -r: restore the origin icon"
 	echo "[*] -d: delete/hide the app in Launchpad"
 	echo "[*] -s: install the specified theme"
 	echo "[*] -f: set icon for file or folder"
 	echo "[*] -h: help"
+	echo "[*] -rootless: it can be used only when you disable SIP"
 }
 
 # Install [theme]
@@ -153,20 +166,58 @@ function install() {
 		foo=setAppIcon
 	fi
 
-	echo "[*] Replace the Applications icon ..."
-	for appicon in $theme/Applications/*
-	do
-		tmp="${appicon##*/}"
-		app="${tmp%.*}"
-		$foo "/Applications/$app" "$appicon"
-	done
-	echo "[*] Replace the Utilities icon ..."
-	for appicon in $theme/Utilities/*
-	do
-		tmp="${appicon##*/}"
-		app="${tmp%.*}"
-		$foo "/Applications/Utilities/$app" "$appicon"
-	done
+	if [ $isRootless = 1 ]; then
+		echo
+		echo -e "\033[31mWarning:\033[0m"
+		echo "In OS X 10.11(El Capitan) and up, Apple add a new 'Rootless' feature -- System Integrity Protection(SIP)."
+		echo "SIP is protecting the core apps which OS X installs into Applications and Applications Utilities. This means it will no \
+longer be possible to change the applications which OS X installs, even from the command line when using root privileges."
+		echo "You can find all protected directories in /System/Library/Sandbox/rootless.conf"
+		echo "So we cant change the icon of core apps in Applications and Applications Utilities."
+		echo
+		echo -e "\033[31mOr:\033[0m"
+		echo "If you really want to change the default apps icon, you can disable SIP."
+		echo "Currently this requires rebooting into recovery mode and running the command 'csrutil disable'"
+		echo
+		echo -n "Would you still want to continue[y/n]:"
+		read isContinue
+		if [ $isContinue != "y" ]; then
+			echo "[*] exit"
+			exit 1
+		fi
+	else
+		echo "[*] Replace the Applications icon ..."
+		for appicon in $theme/Applications/*
+		do
+			tmp="${appicon##*/}"
+			app="${tmp%.*}"
+			$foo "/Applications/$app" "$appicon"
+		done
+		echo "[*] Replace the Utilities icon ..."
+		for appicon in $theme/Utilities/*
+		do
+			tmp="${appicon##*/}"
+			app="${tmp%.*}"
+			$foo "/Applications/Utilities/$app" "$appicon"
+		done
+
+		# Change Finder & Trash app icon
+		echo "[*] Replace the Finder & Trash icon ..."
+		for img in ${imgs[*]}
+		do
+			if [ ! -e $dock_res/$img.bak ]; then
+				mv $dock_res/$img $dock_res/$img.bak
+			else
+				rm $dock_res/$img 2> /dev/null
+			fi
+		done
+
+		for file in $theme/Docker/*
+		do
+			cp -p $file $dock_res/
+		done
+	fi
+	
 	echo "[*] Replace the thirdpart app icon ..."
 	for ipath in $theme/Apps/*
 	do
@@ -175,21 +226,6 @@ function install() {
 		$foo "/Applications/$app" "$ipath"
 	done
 
-	# Change Finder & Trash app icon
-	echo "[*] Replace the Finder & Trash icon ..."
-	for img in ${imgs[*]}
-	do
-		if [ ! -e $dock_res/$img.bak ]; then
-			mv $dock_res/$img $dock_res/$img.bak
-		else
-			rm $dock_res/$img 2> /dev/null
-		fi
-	done
-
-	for file in $theme/Docker/*
-	do
-		cp -p $file $dock_res/
-	done
 	# delete caches & restart docker
 	find /private/var/ -name *dock.iconcache* -exec rm {} \;
 	killall Dock
@@ -224,6 +260,11 @@ fi
 echo "Welcome to Iconist!"
 say "Welcome to Iconist"
 
+isRootless=`isRootless`
+if [ $2 = "-rootless" ]; then
+	isRootless=0
+fi
+
 if [ $1 = "-i" ]; then
 	install $default_theme
 elif [ $1 = "-f" ]; then
@@ -239,11 +280,15 @@ elif [ $1 = "-r" ]; then
 			restoreAppIcon "$app"
 		fi
 	done
-	echo "[*] Restore the Utilities ..."
-	for app in /Applications/Utilities/*
-	do
-		restoreAppIcon "$app"
-	done
+
+	if [ $isRootless = 0 ]; then
+		echo "[*] Restore the Utilities ..."
+		for app in /Applications/Utilities/*
+		do
+			restoreAppIcon "$app"
+		done
+	fi
+	
 	echo "[*] Restore the Docker ..."
 	restoreDocker
 	echo "[*] done"
