@@ -1,4 +1,4 @@
-# Iconista
+# Iconista [![star this repo](http://github-svg-buttons.herokuapp.com/star.svg?user=Urinx&repo=Iconista&style=flat&background=1081C1)](http://github.com/Urinx/Iconista) [![fork this repo](http://github-svg-buttons.herokuapp.com/fork.svg?user=Urinx&repo=Iconista&style=flat&background=1081C1)](http://github.com/Urinx/Iconista/fork) [![license](https://img.shields.io/github/license/Urinx/Iconista.svg)](https://github.com/Urinx/Iconista/blob/master/LICENSE) ![platform](https://img.shields.io/badge/platform-osx-lightgrey.svg) [![download](https://img.shields.io/github/downloads/Urinx/Iconista/total.svg)](https://github.com/Urinx/Iconista/releases)
 
 Learn more at http://urinx.github.io/app/iconista/
 
@@ -32,7 +32,7 @@ El Capitan
 
 Install
 -------
-Download the soure code and then unzip it.
+You can download it [here](https://github.com/Urinx/Iconista/releases) or just clone the soure code and then unzip it.
 ```
 git clone https://github.com/Urinx/Iconista/archive/master.zip
 ```
